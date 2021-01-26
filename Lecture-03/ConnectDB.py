@@ -2,8 +2,10 @@ import psycopg2
 try:
     connection = psycopg2.connect(user="webadmin",
                                 password="XCVmpe99066",
-                                host="node8581-advweb-13.app.ruk-com.cloud",
-                                port="11099",
+                                host = "10.100.2.177",
+                                #host="node8581-advweb-13.app.ruk-com.cloud",
+                                #port="11099",
+                                port ="5432",
                                 database="CloudDB")
 
     cursor = connection.cursor()
