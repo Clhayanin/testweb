@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask.globals import session
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 
@@ -6,8 +7,8 @@ from flask_marshmallow import Marshmallow
 app = Flask(__name__)
 
 #Database
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://webadmin:XCVmpe99066@10.100.2.177:5432/CloudDB"
 #app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://webadmin:XCVmpe99066@node8581-advweb-13.app.ruk-com.cloud:11099/CloudDB"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://webadmin:XCVmpe99066@10.100.2.177:5432/CloudDB"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] =False
 #Init db
 db = SQLAlchemy(app)
@@ -15,86 +16,106 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 #Staff Class/Model
-class Staffs(db.Model):
-    id = db.Column(db.String(13), primary_key=True, unique=True)
-    name = db.Column(db.String(50))
-    email = db.Column(db.String(25))
-    phone = db.Column(db.String(10))
+class Product(db.Model):
+    id_prodocut = db.Column(db.String(13), primary_key=True, unique=True)
+    name_product = db.Column(db.String(50))
+    price = db.Column(db.String(50))
+    id_type = db.Column(db.String(13) ,db.ForeignKey('id_type'))
     
-    def __init__(self, id, name, email, phone):
-        self.id = id
-        self.name = name
-        self.email = email
-        self.phone = phone
+    def __init__(self, id_prodocut, name_product, price, id_type):
+        self.id_prodocut = id_prodocut
+        self.name_product = name_product
+        self.price = price
+        self.id_type = id_type
+
+class Type(db.Model):
+    id_type = db.Column(db.String(13), primary_key=True, unique=True)
+    name_type = db.Column(db.String(50))
+    id_company = db.Column(db.String(13))
+
+    def __init__(self, id_type, name_type, id_company):
+        self.id_type = id_type
+        self.name_type = name_type
+        self.id_company = id_company
 
 # Staff Schema
 class StaffSchema(ma.Schema):
     class Meta:
-        fields =('id', 'name', 'email', 'phone')
+        fields =('id_prodocut', 'name_product', 'price', 'id_type')
 
 # Init Schema 
 staff_schema = StaffSchema()
 staffs_schema = StaffSchema(many=True)
 
 # Get All Staffs
-@app.route('/staffs', methods=['GET'])
+@app.route('/product', methods=['GET'])
 def get_staffs():
-    all_staffs = Staffs.query.all()
+    all_staffs = Product.query.all()
     result = staffs_schema.dump(all_staffs)
     return jsonify(result)
 
+# # Get Single Staff
+# @app.route('/product/<id>', methods=['GET'])
+# def get_staff(id):
+#     staff = Product.query.get(id)
+#     return staff_schema.jsonify(staff)
 
-# Get Single Staff
-@app.route('/staff/<id>', methods=['GET'])
-def get_staff(id):
-    staff = Staffs.query.get(id)
-    return staff_schema.jsonify(staff)
+# # Create a Staff
+# @app.route('/product', methods=['POST'])
+# def add_staff():
+#     id_prodocut = request.json['id_prodocut']
+#     name_product = request.json['name_product']
+#     price = request.json['price']
+#     id_type = request.json['id_type']
 
-# Create a Staff
-@app.route('/staff', methods=['POST'])
-def add_staff():
-    id = request.json['id']
-    name = request.json['name']
-    email = request.json['email']
-    phone = request.json['phone']
+#     new_staff = Product(id_prodocut, name_product, price, id_type)
 
-    new_staff = Staffs(id, name, email, phone)
+#     db.session.add(new_staff)
+#     db.session.commit()
 
-    db.session.add(new_staff)
-    db.session.commit()
+#     return staff_schema.jsonify(new_staff)
 
-    return staff_schema.jsonify(new_staff)
-
-# Update a Staff
-@app.route('/staff/<id>', methods=['PUT'])
-def update_staff(id):
-    staff = Staffs.query.get(id)
+# # Update a Staff
+# @app.route('/product/<id>', methods=['PUT'])
+# def update_staff(id):
+#     staff = Product.query.get(id)
     
-    name = request.json['name']
-    email = request.json['email']
-    phone = request.json['phone']
+#     name_product = request.json['name_product']
+#     price = request.json['price']
+#     id_type = request.json['id_type']
 
-    staff.name = name
-    staff.email = email
-    staff.phone = phone
+#     staff.name_product = name_product
+#     staff.price = price
+#     staff.id_type = id_type
 
-    db.session.commit()
+#     db.session.commit()
 
-    return staff_schema.jsonify(staff)
+#     return staff_schema.jsonify(staff)
 
-# Delete Staff
-@app.route('/staff/<id>', methods=['DELETE'])
-def delete_staff(id):
-    staff = Staffs.query.get(id)
-    db.session.delete(staff)
-    db.session.commit()
+# # Delete Staff
+# @app.route('/product/<id>', methods=['DELETE'])
+# def delete_staff(id):
+#     staff = Product.query.get(id)
+#     db.session.delete(staff)
+#     db.session.commit()
     
-    return staff_schema.jsonify(staff)
+#     return staff_schema.jsonify(staff)
+
 
 # Web Root Hello
 @app.route('/', methods=['GET'])
 def get():
-    return jsonify({'ms': 'Hello Cloud DB1'})
+    query = session.query(
+       Product.id_prodocut, 
+       Product.name_product, 
+       Type.id_type,
+       Type.name_type, 
+    )
+    join_query = query.join(Product).join(Type)
+
+    return join_query.filter(Product.id_type  == Type.id_type).all()
+
+    
 
 # Run Server
 if __name__ == "__main__":
